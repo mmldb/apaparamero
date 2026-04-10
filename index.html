@@ -1,58 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kolbász Érlelő Monitor</title>
+    <title>Kolbász Kontroll</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        body { font-family: sans-serif; background: #2c3e50; color: white; text-align: center; padding: 20px; }
-        .card { background: #34495e; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); margin-bottom: 20px; }
-        .value { font-size: 3em; font-weight: bold; margin: 10px 0; }
-        .unit { font-size: 0.5em; color: #bdc3c7; }
-        .status { padding: 10px; border-radius: 5px; font-weight: bold; margin-top: 10px; }
-        .ok { background: #27ae60; }
-        .dry { background: #e67e22; }
-        .wet { background: #2980b9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #eee; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #e74c3c; text-transform: uppercase; letter-spacing: 2px; }
+        .container { max-width: 400px; margin: 0 auto; }
+        .card { background: #2c3e50; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #34495e; }
+        .label { font-size: 0.9em; color: #bdc3c7; margin-bottom: 5px; }
+        .value { font-size: 3.5em; font-weight: bold; margin: 0; }
+        .unit { font-size: 0.4em; color: #95a5a6; }
+        .status-bar { padding: 12px; border-radius: 10px; font-weight: bold; margin-top: 15px; text-transform: uppercase; }
+        
+        /* Állapot színek */
+        .ok { background: #27ae60; color: white; }
+        .dry { background: #d35400; color: white; }
+        .wet { background: #2980b9; color: white; }
+        .loading { background: #7f8c8d; }
     </style>
 </head>
 <body>
-    <h1>🥩 Kolbász-Kontroll</h1>
-    
-    <div class="card">
-        <div>PÁRATARTALOM</div>
-        <div class="value" id="hum">-- <span class="unit">%</span></div>
-        <div id="hum-status" class="status">Betöltés...</div>
-    </div>
+    <div class="container">
+        <h1>🥩 Kolbász-Kontroll</h1>
+        
+        <div class="card">
+            <div class="label">PÁRATARTALOM</div>
+            <div class="value" id="hum">--<span class="unit">%</span></div>
+            <div id="status" class="status-bar loading">Csatlakozás...</div>
+        </div>
 
-    <div class="card">
-        <div>HŐMÉRSÉKLET</div>
-        <div class="value" id="temp">-- <span class="unit">°C</span></div>
+        <div class="card">
+            <div class="label">HŐMÉRSÉKLET</div>
+            <div class="value" id="temp">--<span class="unit">°C</span></div>
+        </div>
     </div>
 
     <script>
-        // IDE MÁSOLD MAJD A FIREBASE KONFIGURÁCIÓT!
-        var firebaseConfig = {
-            apiKey: "ADATOK_A_PROJECT_SETTINGSBOL",
-            databaseURL: "ADATOK_A_DATABASE_FÜLRŐL",
+        // A TE EGYEDI FIREBASE ADATAID
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3xC8QXRpv0B4dYRYLXUAOB1yAtp5dK80",
+            databaseURL: "https://kolbaszmonitor-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "kolbaszmonitor",
-            appId: "SAJAT_APP_ID"
+            appId: "1:746335520628:web:e48101d8c33dc42ca78e21"
         };
-        
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.database();
 
-        // Adatok frissítése valós időben
+        // Firebase inicializálása
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Adatok figyelése élőben
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
-            document.getElementById('temp').innerHTML = data.homerseklet.toFixed(1) + '<span class="unit">°C</span>';
-            document.getElementById('hum').innerHTML = data.paratartalom.toFixed(1) + '<span class="unit">%</span>';
-            
-            const st = document.getElementById('hum-status');
-            if(data.paratartalom < 65) { st.innerText = "TÚL SZÁRAZ!"; st.className = "status dry"; }
-            else if(data.paratartalom > 85) { st.innerText = "TÚL PÁRÁS!"; st.className = "status wet"; }
-            else { st.innerText = "TÖKÉLETES ÁLLAPOT"; st.className = "status ok"; }
+            if (data) {
+                const t = data.homerseklet.toFixed(1);
+                const h = data.paratartalom.toFixed(1);
+
+                document.getElementById('temp').innerHTML = t + '<span class="unit">°C</span>';
+                document.getElementById('hum').innerHTML = h + '<span class="unit">%</span>';
+
+                const statusDiv = document.getElementById('status');
+                if (h < 65) {
+                    statusDiv.innerText = "⚠️ TÚL SZÁRAZ";
+                    statusDiv.className = "status-bar dry";
+                } else if (h > 85) {
+                    statusDiv.innerText = "💧 TÚL PÁRÁS";
+                    statusDiv.className = "status-bar wet";
+                } else {
+                    statusDiv.innerText = "✅ TÖKÉLETES PÁRA";
+                    statusDiv.className = "status-bar ok";
+                }
+            }
         });
     </script>
 </body>
