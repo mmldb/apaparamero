@@ -1,15 +1,16 @@
 {
-  "name": "Kolbász Kontroll",
   "short_name": "Kolbász",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#2c3e50",
-  "theme_color": "#2c3e50",
+  "name": "Kolbász Kontroll Pro",
   "icons": [
     {
       "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a1a1a",
+  "background_color": "#1a1a1a"
 }
