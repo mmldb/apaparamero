@@ -4,65 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kolbász Kontroll Pro</title>
-    
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="theme-color" content="#1a1a1a">
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding: 15px; }
         .container { max-width: 500px; margin: 0 auto; }
         .card { background: #2c2c2c; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); border: 1px solid #3d3d3d; }
-        h1 { color: #e74c3c; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 10px; }
+        h1 { color: #e74c3c; font-size: 1.6rem; text-transform: uppercase; margin-top: 10px; }
         .value { font-size: 3.8rem; font-weight: bold; margin: 5px 0; }
         .unit { font-size: 1.1rem; color: #888; text-transform: uppercase; }
-        
         #status-text { display: inline-block; padding: 6px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
         .status-ok { background: #27ae60; color: white; }
         .status-warn { background: #d35400; color: white; }
         .status-wet { background: #2980b9; color: white; }
-        
         .tab-container { display: flex; justify-content: space-around; margin-bottom: 15px; background: #222; border-radius: 10px; padding: 5px; }
-        .tab-button { background: none; border: none; color: #888; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 8px; }
+        .tab-button { background: none; border: none; color: #888; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; border-radius: 8px; cursor: pointer; }
         .tab-button.active { background: #3d3d3d; color: white; }
-        .chart-panel { display: none; position: relative; height: 300px; width: 100%; }
+        .chart-panel { display: none; height: 300px; width: 100%; }
         .chart-panel.active { display: block; }
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>🥩 Kolbász Kontroll</h1>
-
         <div class="card">
             <div id="status-text" class="status-ok">Csatlakozás...</div>
             <div class="value" id="current-hum">--<span class="unit">%</span></div>
             <div class="unit">Páratartalom</div>
-            <div style="margin-top: 10px; color: #aaa;">Hőmérséklet: <span id="current-temp" style="color: #eee;">--</span> °C</div>
+            <div style="margin-top: 10px; color: #aaa;">Hőm: <span id="current-temp" style="color: #eee;">--</span> °C</div>
         </div>
-
         <div class="card">
             <div class="tab-container">
                 <button class="tab-button active" onclick="openChart(event, 'chart1h')">1 Óra (Élő)</button>
-                <button class="tab-button" onclick="openChart(event, 'chart6h')">Hosszú táv (6h)</button>
+                <button class="tab-button" onclick="openChart(event, 'chart6h')">Hosszú táv</button>
             </div>
-
-            <div id="chart1h" class="chart-panel active">
-                <canvas id="humidityChart1h"></canvas>
-            </div>
-
-            <div id="chart6h" class="chart-panel">
-                <canvas id="humidityChart6h"></canvas>
-            </div>
+            <div id="chart1h" class="chart-panel active"><canvas id="humidityChart1h"></canvas></div>
+            <div id="chart6h" class="chart-panel"><canvas id="humidityChart6h"></canvas></div>
         </div>
     </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA3xC8QXRpv0B4dYRYLXUAOB1yAtp5dK80",
@@ -70,72 +54,39 @@
             projectId: "kolbaszmonitor",
             appId: "1:746335520628:web:e48101d8c33dc42ca78e21"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1 ÓRÁS GRAFIKON KONFIG (2 görbe + sáv)
         const ctx1h = document.getElementById('humidityChart1h').getContext('2d');
         const chart1h = new Chart(ctx1h, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Pára %',
-                        data: [],
-                        borderColor: '#2ecc71',
-                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 2
-                    },
-                    {
-                        label: 'Hőm °C',
-                        data: [],
-                        borderColor: '#f1c40f',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        fill: false,
-                        pointRadius: 0
-                    }
-                ]
-            },
+            data: { labels: [], datasets: [
+                { label: 'Pára %', data: [], borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.1)', tension: 0.3, fill: true, pointRadius: 2 },
+                { label: 'Hőm °C', data: [], borderColor: '#f1c40f', borderWidth: 2, tension: 0.3, fill: false, pointRadius: 0 }
+            ]},
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { 
                     y: { min: 0, max: 100, grid: { color: '#333' }, ticks: { color: '#888' } },
                     x: { ticks: { color: '#666', maxTicksLimit: 6, maxRotation: 0 } }
                 },
                 plugins: {
                     legend: { display: true, labels: { color: '#aaa', boxWidth: 10 } },
-                    annotation: {
-                        annotations: {
-                            box1: { type: 'box', yMin: 70, yMax: 82, backgroundColor: 'rgba(39, 174, 96, 0.1)', borderColor: 'transparent' },
-                            line1: { type: 'line', yMin: 75, yMax: 75, borderColor: 'rgba(231, 76, 60, 0.5)', borderWidth: 1, borderDash: [5, 5] }
-                        }
-                    }
+                    annotation: { annotations: {
+                        box1: { type: 'box', yMin: 70, yMax: 82, backgroundColor: 'rgba(39, 174, 96, 0.1)', borderColor: 'transparent' },
+                        line1: { type: 'line', yMin: 75, yMax: 75, borderColor: 'rgba(231, 76, 60, 0.5)', borderWidth: 1, borderDash: [5, 5] }
+                    }}
                 }
             }
         });
 
-        // HOSSZÚ TÁVÚ GRAFIKON KONFIG
         const ctx6h = document.getElementById('humidityChart6h').getContext('2d');
         const chart6h = new Chart(ctx6h, {
             type: 'bar',
-            data: { labels: [], datasets: [{ label: '6h Átlag Pára %', data: [], backgroundColor: '#3498db' }] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { min: 0, max: 100, grid: { color: '#333' }, ticks: { color: '#888' } },
-                    x: { ticks: { color: '#666' } }
-                }
-            }
+            data: { labels: [], datasets: [{ label: 'Átlag Pára %', data: [], backgroundColor: '#3498db' }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 }, x: { ticks: { color: '#666' } } } }
         });
 
-        // ADATOK FIGYELÉSE
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -150,37 +101,19 @@
             }
         });
 
-        // 1 Órás történet frissítése
         db.ref('history').limitToLast(60).on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 const hums = []; const temps = []; const labels = [];
                 for (let id in data) {
-                    let timeStr = "";
-                    if(data[id].ts) {
+                    let timeStr = "--:--";
+                    if(data[id].ts && typeof data[id].ts === 'number') {
                         let d = new Date(data[id].ts);
                         timeStr = d.getHours() + ":" + (d.getMinutes()<10?'0':'') + d.getMinutes();
                     }
-                    labels.push(timeStr);
-                    hums.push(data[id].h);
-                    temps.push(data[id].t);
+                    labels.push(timeStr); hums.push(data[id].h); temps.push(data[id].t);
                 }
-                chart1h.data.labels = labels;
-                chart1h.data.datasets[0].data = hums;
-                chart1h.data.datasets[1].data = temps;
-                chart1h.update();
-            }
-        });
-
-        // Hosszú távú frissítés
-        db.ref('daily_trends').limitToLast(12).on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const values = []; const labels = [];
-                for (let id in data) { labels.push(data[id].label || ""); values.push(data[id].avg_h); }
-                chart6h.data.labels = labels;
-                chart6h.data.datasets[0].data = values;
-                chart6h.update();
+                chart1h.data.labels = labels; chart1h.data.datasets[0].data = hums; chart1h.data.datasets[1].data = temps; chart1h.update();
             }
         });
 
@@ -189,10 +122,8 @@
             for (let i = 0; i < panels.length; i++) panels[i].classList.remove("active");
             const buttons = document.getElementsByClassName("tab-button");
             for (let i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
-            document.getElementById(name).classList.add("active");
-            evt.currentTarget.classList.add("active");
+            document.getElementById(name).classList.add("active"); evt.currentTarget.classList.add("active");
         }
-
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     </script>
 </body>
