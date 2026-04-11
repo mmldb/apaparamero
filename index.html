@@ -3,45 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kolbász Kontroll</title>
+    <title>Kolbász Kontroll Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="theme-color" content="#1a1a1a">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #eee; text-align: center; margin: 0; padding: 20px; }
-        h1 { color: #e74c3c; text-transform: uppercase; letter-spacing: 2px; }
-        .container { max-width: 400px; margin: 0 auto; }
-        .card { background: #2c3e50; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #34495e; }
-        .label { font-size: 0.9em; color: #bdc3c7; margin-bottom: 5px; }
-        .value { font-size: 3.5em; font-weight: bold; margin: 0; }
-        .unit { font-size: 0.4em; color: #95a5a6; }
-        .status-bar { padding: 12px; border-radius: 10px; font-weight: bold; margin-top: 15px; text-transform: uppercase; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #1a1a1a; 
+            color: white; 
+            text-align: center; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { 
+            background: #2c2c2c; 
+            border-radius: 20px; 
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 16px rgba(0,0,0,0.6); 
+            border: 1px solid #3d3d3d;
+        }
+        h1 { color: #e74c3c; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 2px; }
+        .value { font-size: 4rem; font-weight: bold; margin: 10px 0; }
+        .unit { font-size: 1.2rem; color: #888; text-transform: uppercase; }
         
-        /* Állapot színek */
-        .ok { background: #27ae60; color: white; }
-        .dry { background: #d35400; color: white; }
-        .wet { background: #2980b9; color: white; }
-        .loading { background: #7f8c8d; }
+        #status-text { 
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .status-ok { background: #27ae60; color: white; }
+        .status-warn { background: #d35400; color: white; }
+        .status-wet { background: #2980b9; color: white; }
+        
+        .chart-container { position: relative; height: 250px; width: 100%; margin-top: 10px; }
+        canvas { background: #222; border-radius: 10px; }
+        .temp-mini { margin-top: 10px; color: #aaa; font-size: 1.1rem; }
     </style>
 </head>
 <body>
+
     <div class="container">
-        <h1>🥩 Kolbász-Kontroll</h1>
-        
+        <h1>🥩 Kolbász Kontroll</h1>
+
         <div class="card">
-            <div class="label">PÁRATARTALOM</div>
-            <div class="value" id="hum">--<span class="unit">%</span></div>
-            <div id="status" class="status-bar loading">Csatlakozás...</div>
+            <div id="status-text" class="status-ok">Csatlakozás...</div>
+            <div class="value" id="current-hum">--<span class="unit">%</span></div>
+            <div class="unit">Páratartalom</div>
+            <div class="temp-mini">
+                Hőmérséklet: <span id="current-temp" style="color: #eee;">--</span> °C
+            </div>
         </div>
 
         <div class="card">
-            <div class="label">HŐMÉRSÉKLET</div>
-            <div class="value" id="temp">--<span class="unit">°C</span></div>
+            <div class="unit" style="font-size: 0.8rem; margin-bottom: 15px;">Páratartalom történet (vonal = 75%)</div>
+            <div class="chart-container">
+                <canvas id="humidityChart"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
-        // A TE EGYEDI FIREBASE ADATAID
+        // A TE FIREBASE ADATAID (Beillesztve)
         const firebaseConfig = {
             apiKey: "AIzaSyA3xC8QXRpv0B4dYRYLXUAOB1yAtp5dK80",
             databaseURL: "https://kolbaszmonitor-default-rtdb.europe-west1.firebasedatabase.app",
@@ -49,33 +85,97 @@
             appId: "1:746335520628:web:e48101d8c33dc42ca78e21"
         };
 
-        // Firebase inicializálása
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Adatok figyelése élőben
-        db.ref('/').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const t = data.homerseklet.toFixed(1);
-                const h = data.paratartalom.toFixed(1);
-
-                document.getElementById('temp').innerHTML = t + '<span class="unit">°C</span>';
-                document.getElementById('hum').innerHTML = h + '<span class="unit">%</span>';
-
-                const statusDiv = document.getElementById('status');
-                if (h < 65) {
-                    statusDiv.innerText = "⚠️ TÚL SZÁRAZ";
-                    statusDiv.className = "status-bar dry";
-                } else if (h > 85) {
-                    statusDiv.innerText = "💧 TÚL PÁRÁS";
-                    statusDiv.className = "status-bar wet";
-                } else {
-                    statusDiv.innerText = "✅ TÖKÉLETES PÁRA";
-                    statusDiv.className = "status-bar ok";
+        // Grafikon inicializálása
+        const ctx = document.getElementById('humidityChart').getContext('2d');
+        const humidityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [
+                    {
+                        label: 'Pára %',
+                        data: [],
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Optimális (75%)',
+                        data: [], 
+                        borderColor: '#e74c3c',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { min: 40, max: 100, grid: { color: '#333' }, ticks: { color: '#888' } },
+                    x: { display: false }
                 }
             }
         });
+
+        // Adatok figyelése
+        db.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const h = data.paratartalom;
+                const t = data.homerseklet;
+
+                // Fő adatok frissítése
+                document.getElementById('current-hum').innerHTML = Math.round(h) + '<span class="unit">%</span>';
+                document.getElementById('current-temp').innerText = t.toFixed(1);
+
+                // Állapotjelző szöveg és szín
+                const status = document.getElementById('status-text');
+                if (h < 65) {
+                    status.innerText = "⚠️ TÚL SZÁRAZ";
+                    status.className = "status-text status-warn";
+                } else if (h > 85) {
+                    status.innerText = "💧 TÚL PÁRÁS";
+                    status.className = "status-text status-wet";
+                } else {
+                    status.innerText = "✅ TÖKÉLETES PÁRA";
+                    status.className = "status-text status-ok";
+                }
+            }
+        });
+
+        // Történet/Grafikon frissítése (Firebase 'history' ágból)
+        db.ref('history').limitToLast(30).on('value', (snapshot) => {
+            const data = snapshot.val();
+            const values = [];
+            const optimal = [];
+            const labels = [];
+
+            if (data) {
+                for (let id in data) {
+                    labels.push(""); 
+                    values.push(data[id].h); // 'h' a pára az adatbázisban
+                    optimal.push(75);
+                }
+                humidityChart.data.labels = labels;
+                humidityChart.data.datasets[0].data = values;
+                humidityChart.data.datasets[1].data = optimal;
+                humidityChart.update();
+            }
+        });
+
+        // Service Worker a PWA telepíthetőséghez
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>
