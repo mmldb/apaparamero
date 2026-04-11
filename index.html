@@ -1,52 +1,327 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kolbász Kontroll Pro</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="theme-color" content="#1a1a1a">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Érlelő Figyelő</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <meta name="theme-color" content="#161616" />
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding: 15px; }
-        .container { max-width: 500px; margin: 0 auto; }
-        .card { background: #2c2c2c; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); border: 1px solid #3d3d3d; }
-        h1 { color: #e74c3c; font-size: 1.6rem; text-transform: uppercase; margin-top: 10px; }
-        .value { font-size: 3.8rem; font-weight: bold; margin: 5px 0; }
-        .unit { font-size: 1.1rem; color: #888; text-transform: uppercase; }
-        #status-text { display: inline-block; padding: 6px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-        .status-ok { background: #27ae60; color: white; }
-        .status-warn { background: #d35400; color: white; }
-        .status-wet { background: #2980b9; color: white; }
-        .tab-container { display: flex; justify-content: space-around; margin-bottom: 15px; background: #222; border-radius: 10px; padding: 5px; }
-        .tab-button { background: none; border: none; color: #888; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .tab-button.active { background: #3d3d3d; color: white; }
-        .chart-panel { display: none; height: 300px; width: 100%; }
-        .chart-panel.active { display: block; }
+        :root {
+            --bg: #161616;
+            --card: #232323;
+            --card-soft: #2b2b2b;
+            --border: #343434;
+            --text: #f3f3f3;
+            --muted: #b7b7b7;
+            --muted-2: #8f8f8f;
+
+            --ok-bg: #1f6a43;
+            --ok-text: #ecfff3;
+
+            --warn-bg: #8a4b12;
+            --warn-text: #fff5ea;
+
+            --wet-bg: #1d5c85;
+            --wet-text: #edf8ff;
+
+            --accent: #d6c3a1;
+            --chart-humidity: #52d18c;
+            --chart-temp: #f0c14b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 18px 14px 28px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            text-align: center;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .header {
+            padding: 8px 8px 18px;
+        }
+
+        h1 {
+            margin: 8px 0 6px;
+            font-size: 2rem;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 0.98rem;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .card {
+            background: linear-gradient(180deg, #272727 0%, #222222 100%);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 22px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 18px;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-bottom: 18px;
+        }
+
+        .status-ok {
+            background: var(--ok-bg);
+            color: var(--ok-text);
+        }
+
+        .status-warn {
+            background: var(--warn-bg);
+            color: var(--warn-text);
+        }
+
+        .status-wet {
+            background: var(--wet-bg);
+            color: var(--wet-text);
+        }
+
+        .main-value {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 4px;
+            margin: 4px 0 2px;
+        }
+
+        .main-number {
+            font-size: 5.2rem;
+            line-height: 0.92;
+            font-weight: 800;
+            letter-spacing: -0.06em;
+        }
+
+        .main-unit {
+            font-size: 2rem;
+            line-height: 1.2;
+            font-weight: 700;
+            color: var(--muted);
+            padding-top: 8px;
+        }
+
+        .main-label {
+            font-size: 1.15rem;
+            color: var(--muted);
+            margin-top: 12px;
+            margin-bottom: 18px;
+        }
+
+        .secondary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .mini-stat {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            padding: 14px 12px;
+        }
+
+        .mini-label {
+            font-size: 0.95rem;
+            color: var(--muted-2);
+            margin-bottom: 8px;
+        }
+
+        .mini-value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        .range-note {
+            margin-top: 16px;
+            font-size: 0.98rem;
+            color: var(--accent);
+        }
+
+        .section-title {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 14px;
+            text-align: left;
+            padding-left: 2px;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 8px;
+            background: #1d1d1d;
+            border-radius: 16px;
+            padding: 6px;
+            margin-bottom: 16px;
+        }
+
+        .tab-button {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--muted-2);
+            padding: 14px 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .tab-button.active {
+            background: #3a3a3a;
+            color: var(--text);
+        }
+
+        .chart-panel {
+            display: none;
+            height: 320px;
+            width: 100%;
+        }
+
+        .chart-panel.active {
+            display: block;
+        }
+
+        .chart-note {
+            margin-top: 12px;
+            font-size: 0.92rem;
+            color: var(--muted-2);
+            text-align: left;
+            line-height: 1.45;
+        }
+
+        .footer-note {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #7c7c7c;
+        }
+
+        @media (max-width: 430px) {
+            body {
+                padding: 14px 12px 24px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .main-number {
+                font-size: 4.4rem;
+            }
+
+            .main-unit {
+                font-size: 1.8rem;
+                padding-top: 6px;
+            }
+
+            .secondary-row {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-button {
+                font-size: 0.98rem;
+                padding: 13px 8px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🥩 Kolbász Kontroll</h1>
-        <div class="card">
-            <div id="status-text" class="status-ok">Csatlakozás...</div>
-            <div class="value" id="current-hum">--<span class="unit">%</span></div>
-            <div class="unit">Páratartalom</div>
-            <div style="margin-top: 10px; color: #aaa;">Hőm: <span id="current-temp" style="color: #eee;">--</span> °C</div>
-        </div>
-        <div class="card">
-            <div class="tab-container">
-                <button class="tab-button active" onclick="openChart(event, 'chart1h')">1 Óra (Élő)</button>
-                <button class="tab-button" onclick="openChart(event, 'chart6h')">Hosszú táv</button>
+        <header class="header">
+            <h1>Érlelő Figyelő</h1>
+            <p class="subtitle">Páratartalom és hőmérséklet figyelése az érlelő környezethez</p>
+        </header>
+
+        <section class="card">
+            <div id="status-text" class="status-badge status-ok">Kapcsolódás...</div>
+
+            <div class="main-value">
+                <div class="main-number" id="current-hum">--</div>
+                <div class="main-unit">%</div>
             </div>
-            <div id="chart1h" class="chart-panel active"><canvas id="humidityChart1h"></canvas></div>
-            <div id="chart6h" class="chart-panel"><canvas id="humidityChart6h"></canvas></div>
-        </div>
+
+            <div class="main-label">Páratartalom</div>
+
+            <div class="secondary-row">
+                <div class="mini-stat">
+                    <div class="mini-label">Hőmérséklet</div>
+                    <div class="mini-value"><span id="current-temp">--</span> °C</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-label">Ajánlott tartomány</div>
+                    <div class="mini-value">70–82%</div>
+                </div>
+            </div>
+
+            <div class="range-note">Ideális célérték: 75% körül</div>
+        </section>
+
+        <section class="card">
+            <div class="section-title">Alakulás</div>
+
+            <div class="tab-container">
+                <button class="tab-button active" onclick="openChart(event, 'chart1h')">Elmúlt 1 óra</button>
+                <button class="tab-button" onclick="openChart(event, 'chart6h')">Hosszabb táv</button>
+            </div>
+
+            <div id="chart1h" class="chart-panel active">
+                <canvas id="humidityChart1h"></canvas>
+            </div>
+
+            <div id="chart6h" class="chart-panel">
+                <canvas id="humidityChart6h"></canvas>
+            </div>
+
+            <div class="chart-note">
+                A zöld sáv az ajánlott páratartományt jelzi. A zöld vonal a páratartalom, a sárga vonal a hőmérséklet.
+            </div>
+        </section>
+
+        <div class="footer-note">Az adatok automatikusan frissülnek.</div>
     </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA3xC8QXRpv0B4dYRYLXUAOB1yAtp5dK80",
@@ -54,28 +329,125 @@
             projectId: "kolbaszmonitor",
             appId: "1:746335520628:web:e48101d8c33dc42ca78e21"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        const currentHumEl = document.getElementById('current-hum');
+        const currentTempEl = document.getElementById('current-temp');
+        const statusEl = document.getElementById('status-text');
 
         const ctx1h = document.getElementById('humidityChart1h').getContext('2d');
         const chart1h = new Chart(ctx1h, {
             type: 'line',
-            data: { labels: [], datasets: [
-                { label: 'Pára %', data: [], borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.1)', tension: 0.3, fill: true, pointRadius: 2 },
-                { label: 'Hőm °C', data: [], borderColor: '#f1c40f', borderWidth: 2, tension: 0.3, fill: false, pointRadius: 0 }
-            ]},
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Páratartalom %',
+                        data: [],
+                        borderColor: '#52d18c',
+                        backgroundColor: 'rgba(82, 209, 140, 0.14)',
+                        tension: 0.32,
+                        fill: true,
+                        pointRadius: 2,
+                        pointHoverRadius: 4,
+                        borderWidth: 3
+                    },
+                    {
+                        label: 'Hőmérséklet °C',
+                        data: [],
+                        borderColor: '#f0c14b',
+                        borderWidth: 2,
+                        tension: 0.32,
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { 
-                    y: { min: 0, max: 100, grid: { color: '#333' }, ticks: { color: '#888' } },
-                    x: { ticks: { color: '#666', maxTicksLimit: 6, maxRotation: 0 } }
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                layout: {
+                    padding: {
+                        top: 6,
+                        right: 6,
+                        left: 4,
+                        bottom: 0
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: '#343434'
+                        },
+                        ticks: {
+                            color: '#9a9a9a',
+                            font: {
+                                size: 13
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255,255,255,0.04)'
+                        },
+                        ticks: {
+                            color: '#8f8f8f',
+                            maxTicksLimit: 6,
+                            maxRotation: 0,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
                 },
                 plugins: {
-                    legend: { display: true, labels: { color: '#aaa', boxWidth: 10 } },
-                    annotation: { annotations: {
-                        box1: { type: 'box', yMin: 70, yMax: 82, backgroundColor: 'rgba(39, 174, 96, 0.1)', borderColor: 'transparent' },
-                        line1: { type: 'line', yMin: 75, yMax: 75, borderColor: 'rgba(231, 76, 60, 0.5)', borderWidth: 1, borderDash: [5, 5] }
-                    }}
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: '#c8c8c8',
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            padding: 16,
+                            font: {
+                                size: 13
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: {
+                            idealRange: {
+                                type: 'box',
+                                yMin: 70,
+                                yMax: 82,
+                                backgroundColor: 'rgba(82, 209, 140, 0.10)',
+                                borderColor: 'transparent'
+                            },
+                            targetLine: {
+                                type: 'line',
+                                yMin: 75,
+                                yMax: 75,
+                                borderColor: 'rgba(214, 195, 161, 0.55)',
+                                borderWidth: 1.5,
+                                borderDash: [6, 6]
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#202020',
+                        borderColor: '#444',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        bodyColor: '#eee',
+                        displayColors: true
+                    }
                 }
             }
         });
@@ -83,48 +455,179 @@
         const ctx6h = document.getElementById('humidityChart6h').getContext('2d');
         const chart6h = new Chart(ctx6h, {
             type: 'bar',
-            data: { labels: [], datasets: [{ label: 'Átlag Pára %', data: [], backgroundColor: '#3498db' }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 }, x: { ticks: { color: '#666' } } } }
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Átlagos páratartalom %',
+                        data: [],
+                        backgroundColor: 'rgba(82, 209, 140, 0.7)',
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 6,
+                        right: 6,
+                        left: 4,
+                        bottom: 0
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: '#343434'
+                        },
+                        ticks: {
+                            color: '#9a9a9a',
+                            font: {
+                                size: 13
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#8f8f8f',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: '#c8c8c8',
+                            font: {
+                                size: 13
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#202020',
+                        borderColor: '#444',
+                        borderWidth: 1,
+                        titleColor: '#fff',
+                        bodyColor: '#eee'
+                    }
+                }
+            }
         });
+
+        function setStatus(humidity) {
+            statusEl.classList.remove('status-ok', 'status-warn', 'status-wet');
+
+            if (humidity < 70) {
+                statusEl.textContent = 'Száraz a levegő';
+                statusEl.classList.add('status-warn');
+            } else if (humidity > 82) {
+                statusEl.textContent = 'Párás a levegő';
+                statusEl.classList.add('status-wet');
+            } else {
+                statusEl.textContent = 'Megfelelő állapot';
+                statusEl.classList.add('status-ok');
+            }
+        }
 
         db.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data) {
-                const h = data.paratartalom;
-                const t = data.homerseklet;
-                document.getElementById('current-hum').innerHTML = Math.round(h) + '<span class="unit">%</span>';
-                document.getElementById('current-temp').innerText = t.toFixed(1);
-                const status = document.getElementById('status-text');
-                if (h < 70) { status.innerText = "⚠️ TÚL SZÁRAZ"; status.className = "status-warn"; }
-                else if (h > 82) { status.innerText = "💧 TÚL PÁRÁS"; status.className = "status-wet"; }
-                else { status.innerText = "✅ TÖKÉLETES PÁRA"; status.className = "status-ok"; }
+
+            if (!data) return;
+
+            const humidity = data.paratartalom;
+            const temperature = data.homerseklet;
+
+            if (typeof humidity === 'number') {
+                currentHumEl.textContent = Math.round(humidity);
+                setStatus(humidity);
+            }
+
+            if (typeof temperature === 'number') {
+                currentTempEl.textContent = temperature.toFixed(1);
             }
         });
 
         db.ref('history').limitToLast(60).on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data) {
-                const hums = []; const temps = []; const labels = [];
-                for (let id in data) {
-                    let timeStr = "--:--";
-                    if(data[id].ts && typeof data[id].ts === 'number') {
-                        let d = new Date(data[id].ts);
-                        timeStr = d.getHours() + ":" + (d.getMinutes()<10?'0':'') + d.getMinutes();
-                    }
-                    labels.push(timeStr); hums.push(data[id].h); temps.push(data[id].t);
+            if (!data) return;
+
+            const humidities = [];
+            const temperatures = [];
+            const labels = [];
+
+            for (const id in data) {
+                let timeStr = '--:--';
+
+                if (data[id].ts && typeof data[id].ts === 'number') {
+                    const d = new Date(data[id].ts);
+                    const hours = d.getHours();
+                    const minutes = d.getMinutes().toString().padStart(2, '0');
+                    timeStr = `${hours}:${minutes}`;
                 }
-                chart1h.data.labels = labels; chart1h.data.datasets[0].data = hums; chart1h.data.datasets[1].data = temps; chart1h.update();
+
+                labels.push(timeStr);
+                humidities.push(data[id].h);
+                temperatures.push(data[id].t);
             }
+
+            chart1h.data.labels = labels;
+            chart1h.data.datasets[0].data = humidities;
+            chart1h.data.datasets[1].data = temperatures;
+            chart1h.update();
+        });
+
+        db.ref('history_long').limitToLast(12).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            const labels = [];
+            const values = [];
+
+            for (const id in data) {
+                let label = id;
+
+                if (data[id].label) {
+                    label = data[id].label;
+                }
+
+                labels.push(label);
+                values.push(data[id].avgH ?? 0);
+            }
+
+            chart6h.data.labels = labels;
+            chart6h.data.datasets[0].data = values;
+            chart6h.update();
         });
 
         function openChart(evt, name) {
-            const panels = document.getElementsByClassName("chart-panel");
-            for (let i = 0; i < panels.length; i++) panels[i].classList.remove("active");
-            const buttons = document.getElementsByClassName("tab-button");
-            for (let i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
-            document.getElementById(name).classList.add("active"); evt.currentTarget.classList.add("active");
+            const panels = document.getElementsByClassName('chart-panel');
+            for (let i = 0; i < panels.length; i++) {
+                panels[i].classList.remove('active');
+            }
+
+            const buttons = document.getElementsByClassName('tab-button');
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+
+            document.getElementById(name).classList.add('active');
+            evt.currentTarget.classList.add('active');
         }
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
     </script>
 </body>
 </html>
