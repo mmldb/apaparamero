@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Érlelő v1.2.2</title>
+    <title>Érlelő v1.2.3</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icon.png" />
     <meta name="theme-color" content="#161616" />
@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -84,7 +83,7 @@
     <div class="container">
         <header class="header">
             <h1>Érlelő</h1>
-            <span class="version">v1.2.2</span>
+            <span class="version">v1.2.3</span>
         </header>
 
         <section class="card">
@@ -137,7 +136,6 @@
 
         let chart1hObj, chartDayObj;
 
-        // Szín és szöveg frissítése
         function updateStatus(h) {
             const numEl = document.getElementById('current-hum');
             const labelEl = document.getElementById('status-label');
@@ -154,7 +152,6 @@
             labelEl.textContent = text;
         }
 
-        // Grafikon alapbeállítások
         const getChartConfig = () => ({
             type: 'line',
             data: {
@@ -188,7 +185,6 @@
         chart1hObj = new Chart(document.getElementById('humidityChart1h').getContext('2d'), getChartConfig());
         chartDayObj = new Chart(document.getElementById('humidityChartDay').getContext('2d'), getChartConfig());
 
-        // Élő adatok
         db.ref('/').on('value', (s) => {
             const d = s.val(); if (!d) return;
             const h = Math.round(d.paratartalom);
@@ -197,11 +193,15 @@
             updateStatus(h);
         });
 
-        // Adatok feldolgozása (1 órás és Napi átlagolt)
         db.ref('history').limitToLast(1440).on('value', (s) => {
             const data = s.val(); if (!data) return;
             const allEntries = Object.values(data);
             
+            // MAI NAP KEZDETE (00:00:00)
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const todayStartTime = todayStart.getTime();
+
             // 1. ELMÚLT 1 ÓRA
             const last60 = allEntries.slice(-60);
             const l1 = [], h1 = [], t1 = [];
@@ -217,10 +217,11 @@
             chart1hObj.data.datasets[1].data = t1;
             chart1hObj.update('none');
 
-            // 2. NAP (Órás átlagolás)
+            // 2. NAP (Csak a mai adatok átlagolva)
             const hourlyGroups = {};
             allEntries.forEach(e => {
-                if (e.ts && typeof e.ts === 'number') {
+                // Szűrés: Csak ha szám és CSAK HA MAI
+                if (e.ts && typeof e.ts === 'number' && e.ts >= todayStartTime) {
                     const date = new Date(e.ts);
                     const hourKey = date.getHours() + ":00";
                     if (!hourlyGroups[hourKey]) hourlyGroups[hourKey] = { sh: 0, st: 0, c: 0 };
@@ -231,11 +232,13 @@
             });
 
             const lD = [], hD = [], tD = [];
+            // Órák sorbarendezése
             Object.keys(hourlyGroups).sort((a,b) => parseInt(a) - parseInt(b)).forEach(k => {
                 lD.push(k);
                 hD.push(hourlyGroups[k].sh / hourlyGroups[k].c);
                 tD.push(hourlyGroups[k].st / hourlyGroups[k].c);
             });
+            
             chartDayObj.data.labels = lD;
             chartDayObj.data.datasets[0].data = hD;
             chartDayObj.data.datasets[1].data = tD;
