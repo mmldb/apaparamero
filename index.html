@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Érlelő v1.2.3</title>
+    <title>Érlelő v1.2.4</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icon.png" />
     <meta name="theme-color" content="#161616" />
@@ -17,110 +17,52 @@
 
     <style>
         :root {
-            --bg: #161616;
-            --card: #232323;
-            --border: #343434;
-            --text: #f3f3f3;
-            --muted: #8f8f8f;
-            --color-red: #ff4d4d;
-            --color-yellow: #ffcc00;
-            --color-green: #52d18c;
+            --bg: #161616; --card: #232323; --border: #343434; --text: #f3f3f3; --muted: #8f8f8f;
+            --color-red: #ff4d4d; --color-yellow: #ffcc00; --color-green: #52d18c;
         }
-
-        body {
-            margin: 0;
-            padding: 20px 16px;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, system-ui, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        body { margin: 0; padding: 20px 16px; background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
         .container { max-width: 500px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
         h1 { margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em; }
         .version { font-size: 0.75rem; color: #444; font-weight: 600; }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 28px; padding: 24px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
         .main-display { display: flex; flex-direction: column; align-items: flex-start; }
         .val-row { display: flex; align-items: baseline; gap: 4px; }
         .main-num { font-size: 5rem; font-weight: 800; letter-spacing: -0.05em; line-height: 1; transition: color 0.3s ease; }
         .main-unit { font-size: 1.8rem; font-weight: 600; color: var(--muted); }
         #status-label { font-size: 1.1rem; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-
         .secondary-stats { display: flex; gap: 20px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
         .stat-item { flex: 1; }
         .stat-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; }
         .stat-val { font-size: 1.4rem; font-weight: 700; }
-
         .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; background: #1d1d1d; padding: 5px; border-radius: 18px; }
-        .tab-btn { 
-            flex: 1; border: none; background: transparent; color: var(--muted); 
-            padding: 12px; border-radius: 14px; font-weight: 700; cursor: pointer;
-            transition: all 0.2s ease;
-        }
+        .tab-btn { flex: 1; border: none; background: transparent; color: var(--muted); padding: 12px; border-radius: 14px; font-weight: 700; cursor: pointer; }
         .tab-btn.active { background: #3a3a3a; color: var(--text); }
-
         .chart-panel { display: none; height: 320px; width: 100%; touch-action: none; position: relative; }
         .chart-panel.active { display: block; }
-        
-        .reset-zoom {
-            position: absolute; top: -10px; right: 0; z-index: 10;
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted);
-            font-size: 0.7rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
-        }
+        .reset-zoom { position: absolute; top: -10px; right: 0; z-index: 10; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; padding: 4px 10px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>Érlelő</h1>
-            <span class="version">v1.2.3</span>
-        </header>
-
+        <header class="header"><h1>Érlelő</h1><span class="version">v1.2.4</span></header>
         <section class="card">
             <div class="main-display">
-                <div class="val-row">
-                    <div class="main-num" id="current-hum">--</div>
-                    <div class="main-unit">%</div>
-                </div>
+                <div class="val-row"><div class="main-num" id="current-hum">--</div><div class="main-unit">%</div></div>
                 <div id="status-label">KAPCSOLÓDÁS...</div>
             </div>
             <div class="secondary-stats">
-                <div class="stat-item">
-                    <div class="stat-label">HŐMÉRSÉKLET</div>
-                    <div class="stat-val"><span id="current-temp">--</span> °C</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">CÉL</div>
-                    <div class="stat-val">75%</div>
-                </div>
+                <div class="stat-item"><div class="stat-label">HŐMÉRSÉKLET</div><div class="stat-val"><span id="current-temp">--</span> °C</div></div>
+                <div class="stat-item"><div class="stat-label">CÉL</div><div class="stat-val">75%</div></div>
             </div>
         </section>
-
         <section class="card">
             <div class="tab-nav">
                 <button class="tab-btn active" onclick="openChart(event, 'chart1h')">1 óra</button>
                 <button class="tab-btn" onclick="openChart(event, 'chartDay')">Nap</button>
             </div>
-
-            <div id="chart1h" class="chart-panel active">
-                <button class="reset-zoom" onclick="chart1hObj.resetZoom()">Reset Zoom</button>
-                <canvas id="humidityChart1h"></canvas>
-            </div>
-
-            <div id="chartDay" class="chart-panel">
-                <button class="reset-zoom" onclick="chartDayObj.resetZoom()">Reset Zoom</button>
-                <canvas id="humidityChartDay"></canvas>
-            </div>
+            <div id="chart1h" class="chart-panel active"><button class="reset-zoom" onclick="chart1hObj.resetZoom()">Reset Zoom</button><canvas id="humidityChart1h"></canvas></div>
+            <div id="chartDay" class="chart-panel"><button class="reset-zoom" onclick="chartDayObj.resetZoom()">Reset Zoom</button><canvas id="humidityChartDay"></canvas></div>
         </section>
     </div>
 
@@ -133,34 +75,26 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         let chart1hObj, chartDayObj;
+        let mainRef, historyRef;
 
         function updateStatus(h) {
-            const numEl = document.getElementById('current-hum');
-            const labelEl = document.getElementById('status-label');
+            const numEl = document.getElementById('current-hum'), labelEl = document.getElementById('status-label');
             let color, text;
-
             if (h < 65) { color = 'var(--color-red)'; text = 'Túl száraz'; }
             else if (h >= 65 && h < 75) { color = 'var(--color-yellow)'; text = 'Alacsony pára'; }
             else if (h >= 75 && h <= 82) { color = 'var(--color-green)'; text = 'Optimális'; }
             else if (h > 82 && h <= 90) { color = 'var(--color-yellow)'; text = 'Magas pára'; }
             else { color = 'var(--color-red)'; text = 'Veszélyes pára'; }
-
-            numEl.style.color = color;
-            labelEl.style.color = color;
-            labelEl.textContent = text;
+            numEl.style.color = color; labelEl.style.color = color; labelEl.textContent = text;
         }
 
         const getChartConfig = () => ({
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'Pára %', data: [], borderColor: '#52d18c', borderWidth: 3, pointRadius: 1, tension: 0.35, fill: false },
-                    { label: 'Hőm °C', data: [], borderColor: '#f0c14b', borderWidth: 1.5, pointRadius: 0, tension: 0.35 }
-                ]
-            },
+            data: { labels: [], datasets: [
+                { label: 'Pára %', data: [], borderColor: '#52d18c', borderWidth: 3, pointRadius: 1, tension: 0.35, fill: false },
+                { label: 'Hőm °C', data: [], borderColor: '#f0c14b', borderWidth: 1.5, pointRadius: 0, tension: 0.35 }
+            ]},
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
@@ -169,15 +103,8 @@
                 },
                 plugins: {
                     legend: { display: false },
-                    annotation: {
-                        annotations: {
-                            idealBox: { type: 'box', yMin: 75, yMax: 82, backgroundColor: 'rgba(82, 209, 140, 0.08)', borderColor: 'transparent', drawTime: 'beforeDatasetsDraw' }
-                        }
-                    },
-                    zoom: {
-                        pan: { enabled: true, mode: 'x' },
-                        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
-                    }
+                    annotation: { annotations: { idealBox: { type: 'box', yMin: 75, yMax: 82, backgroundColor: 'rgba(82, 209, 140, 0.08)', borderColor: 'transparent', drawTime: 'beforeDatasetsDraw' } } },
+                    zoom: { pan: { enabled: true, mode: 'x' }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' } }
                 }
             }
         });
@@ -185,65 +112,59 @@
         chart1hObj = new Chart(document.getElementById('humidityChart1h').getContext('2d'), getChartConfig());
         chartDayObj = new Chart(document.getElementById('humidityChartDay').getContext('2d'), getChartConfig());
 
-        db.ref('/').on('value', (s) => {
-            const d = s.val(); if (!d) return;
-            const h = Math.round(d.paratartalom);
-            document.getElementById('current-hum').textContent = h;
-            document.getElementById('current-temp').textContent = d.homerseklet.toFixed(1);
-            updateStatus(h);
-        });
-
-        db.ref('history').limitToLast(1440).on('value', (s) => {
-            const data = s.val(); if (!data) return;
-            const allEntries = Object.values(data);
-            
-            // MAI NAP KEZDETE (00:00:00)
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-            const todayStartTime = todayStart.getTime();
-
-            // 1. ELMÚLT 1 ÓRA
-            const last60 = allEntries.slice(-60);
-            const l1 = [], h1 = [], t1 = [];
-            last60.forEach(e => {
-                if (e.ts && typeof e.ts === 'number') {
-                    const d = new Date(e.ts);
-                    l1.push(d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0'));
-                    h1.push(e.h); t1.push(e.t);
-                }
+        // Kapcsolatok kezelése (Aktív/Inaktív ablak)
+        function startSync() {
+            mainRef = db.ref('/').on('value', (s) => {
+                const d = s.val(); if (!d) return;
+                const h = Math.round(d.paratartalom);
+                document.getElementById('current-hum').textContent = h;
+                document.getElementById('current-temp').textContent = d.homerseklet.toFixed(1);
+                updateStatus(h);
             });
-            chart1hObj.data.labels = l1;
-            chart1hObj.data.datasets[0].data = h1;
-            chart1hObj.data.datasets[1].data = t1;
-            chart1hObj.update('none');
 
-            // 2. NAP (Csak a mai adatok átlagolva)
-            const hourlyGroups = {};
-            allEntries.forEach(e => {
-                // Szűrés: Csak ha szám és CSAK HA MAI
-                if (e.ts && typeof e.ts === 'number' && e.ts >= todayStartTime) {
-                    const date = new Date(e.ts);
-                    const hourKey = date.getHours() + ":00";
+            historyRef = db.ref('history').limitToLast(1440).on('value', (s) => {
+                const data = s.val(); if (!data) return;
+                const allEntries = Object.values(data);
+                const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+                const todayStartTime = todayStart.getTime();
+
+                // 1 ÓRA
+                const last60 = allEntries.slice(-60);
+                const l1 = [], h1 = [], t1 = [];
+                last60.forEach(e => { if (e.ts && typeof e.ts === 'number') {
+                    const d = new Date(e.ts); l1.push(d.getHours() + ":" + d.getMinutes().toString().padStart(2, '0')); h1.push(e.h); t1.push(e.t);
+                }});
+                chart1hObj.data.labels = l1; chart1hObj.data.datasets[0].data = h1; chart1hObj.data.datasets[1].data = t1; chart1hObj.update('none');
+
+                // NAP
+                const hourlyGroups = {};
+                allEntries.forEach(e => { if (e.ts && typeof e.ts === 'number' && e.ts >= todayStartTime) {
+                    const date = new Date(e.ts); const hourKey = date.getHours() + ":00";
                     if (!hourlyGroups[hourKey]) hourlyGroups[hourKey] = { sh: 0, st: 0, c: 0 };
-                    hourlyGroups[hourKey].sh += e.h;
-                    hourlyGroups[hourKey].st += e.t;
-                    hourlyGroups[hourKey].c++;
-                }
+                    hourlyGroups[hourKey].sh += e.h; hourlyGroups[hourKey].st += e.t; hourlyGroups[hourKey].c++;
+                }});
+                const lD = [], hD = [], tD = [];
+                Object.keys(hourlyGroups).sort((a,b) => parseInt(a) - parseInt(b)).forEach(k => {
+                    lD.push(k); hD.push(hourlyGroups[k].sh / hourlyGroups[k].c); tD.push(hourlyGroups[k].st / hourlyGroups[k].c);
+                });
+                chartDayObj.data.labels = lD; chartDayObj.data.datasets[0].data = hD; chartDayObj.data.datasets[1].data = tD; chartDayObj.update('none');
             });
+            console.log("Adatkapcsolat aktív.");
+        }
 
-            const lD = [], hD = [], tD = [];
-            // Órák sorbarendezése
-            Object.keys(hourlyGroups).sort((a,b) => parseInt(a) - parseInt(b)).forEach(k => {
-                lD.push(k);
-                hD.push(hourlyGroups[k].sh / hourlyGroups[k].c);
-                tD.push(hourlyGroups[k].st / hourlyGroups[k].c);
-            });
-            
-            chartDayObj.data.labels = lD;
-            chartDayObj.data.datasets[0].data = hD;
-            chartDayObj.data.datasets[1].data = tD;
-            chartDayObj.update('none');
+        function stopSync() {
+            if (mainRef) db.ref('/').off('value', mainRef);
+            if (historyRef) db.ref('history').off('value', historyRef);
+            console.log("Adatkapcsolat leállítva (háttérben).");
+        }
+
+        // Visibility API figyelése
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) { stopSync(); } else { startSync(); }
         });
+
+        // Indítás
+        startSync();
 
         function openChart(evt, name) {
             document.querySelectorAll('.chart-panel').forEach(p => p.classList.remove('active'));
