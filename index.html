@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -32,6 +33,7 @@
             background: var(--bg);
             color: var(--text);
             font-family: -apple-system, system-ui, sans-serif;
+            -webkit-user-select: none;
         }
 
         .container { max-width: 500px; margin: 0 auto; }
@@ -45,6 +47,7 @@
             border-radius: 28px;
             padding: 24px;
             margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
 
         .main-display { display: flex; align-items: baseline; justify-content: flex-start; gap: 4px; }
@@ -53,22 +56,24 @@
 
         .secondary-stats { display: flex; gap: 20px; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
         .stat-item { flex: 1; }
-        .stat-label { font-size: 0.9rem; color: var(--muted); margin-bottom: 4px; }
+        .stat-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.05em; }
         .stat-val { font-size: 1.4rem; font-weight: 700; }
 
-        .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-nav { display: flex; gap: 10px; margin-bottom: 15px; background: #1d1d1d; padding: 5px; border-radius: 18px; }
         .tab-btn { 
-            flex: 1; border: none; background: #2a2a2a; color: var(--muted); 
+            flex: 1; border: none; background: transparent; color: var(--muted); 
             padding: 12px; border-radius: 14px; font-weight: 700; cursor: pointer;
+            transition: all 0.2s;
         }
-        .tab-btn.active { background: var(--text); color: var(--bg); }
+        .tab-btn.active { background: #3a3a3a; color: var(--text); }
 
-        .chart-panel { display: none; height: 300px; width: 100%; touch-action: none; }
+        .chart-panel { display: none; height: 320px; width: 100%; touch-action: none; position: relative; }
         .chart-panel.active { display: block; }
         
         .reset-zoom {
-            background: none; border: 1px solid var(--border); color: var(--muted);
-            font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; margin-top: 8px;
+            position: absolute; top: -10px; right: 0;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted);
+            font-size: 0.7rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
         }
     </style>
 </head>
@@ -88,22 +93,26 @@
                     <div class="stat-label">HŐMÉRSÉKLET</div>
                     <div class="stat-val"><span id="current-temp">--</span> °C</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">CÉLÉRTÉK</div>
+                    <div class="stat-val">75%</div>
+                </div>
             </div>
         </section>
 
         <section class="card">
             <div class="tab-nav">
                 <button class="tab-btn active" onclick="openChart(event, 'chart1h')">1 óra</button>
-                <button class="tab-btn" onclick="openChart(event, 'chart6h')">Nap</button>
+                <button class="tab-btn" onclick="openChart(event, 'chartDay')">Mai nap</button>
             </div>
 
             <div id="chart1h" class="chart-panel active">
-                <canvas id="humidityChart1h"></canvas>
                 <button class="reset-zoom" onclick="chart1hObj.resetZoom()">Zoom visszaállítása</button>
+                <canvas id="humidityChart1h"></canvas>
             </div>
 
-            <div id="chart6h" class="chart-panel">
-                <canvas id="humidityChart6h"></canvas>
+            <div id="chartDay" class="chart-panel">
+                <canvas id="humidityChartDay"></canvas>
             </div>
         </section>
     </div>
@@ -118,27 +127,50 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let chart1hObj;
+        let chart1hObj, chartDayObj;
 
-        // 1 ÓRÁS GRAFIKON (Zoomos)
+        // KÖZÖS BEÁLLÍTÁS A ZÖLD SÁVHOZ
+        const idealRangeAnnotation = {
+            annotations: {
+                idealBox: {
+                    type: 'box',
+                    yMin: 70,
+                    yMax: 82,
+                    backgroundColor: 'rgba(82, 209, 140, 0.08)',
+                    borderColor: 'transparent',
+                    drawTime: 'beforeDatasetsDraw'
+                },
+                targetLine: {
+                    type: 'line',
+                    yMin: 75,
+                    yMax: 75,
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    borderDash: [5, 5]
+                }
+            }
+        };
+
+        // 1 ÓRÁS GRAFIKON
         const ctx1h = document.getElementById('humidityChart1h').getContext('2d');
         chart1hObj = new Chart(ctx1h, {
             type: 'line',
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Pára %', data: [], borderColor: '#52d18c', borderWidth: 2, pointRadius: 1, tension: 0.3, fill: false },
-                    { label: 'Hőm °C', data: [], borderColor: '#f0c14b', borderWidth: 1.5, pointRadius: 0, tension: 0.3 }
+                    { label: 'Pára %', data: [], borderColor: '#52d18c', borderWidth: 3, pointRadius: 1, tension: 0.35, fill: false },
+                    { label: 'Hőm °C', data: [], borderColor: '#f0c14b', borderWidth: 1.5, pointRadius: 0, tension: 0.35 }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    y: { min: 0, max: 100, grid: { color: '#333' }, ticks: { color: '#666' } },
-                    x: { grid: { display: false }, ticks: { color: '#666', maxTicksLimit: 5 } }
+                    y: { min: 40, max: 100, grid: { color: '#2a2a2a' }, ticks: { color: '#666' } },
+                    x: { grid: { display: false }, ticks: { color: '#666', maxTicksLimit: 6 } }
                 },
                 plugins: {
                     legend: { display: false },
+                    annotation: idealRangeAnnotation,
                     zoom: {
                         pan: { enabled: true, mode: 'x' },
                         zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
@@ -147,53 +179,68 @@
             }
         });
 
-        // NAPI GRAFIKON (Oszlopos - 1 órás blokkok)
-        const ctx6h = document.getElementById('humidityChart6h').getContext('2d');
-        const chart6hObj = new Chart(ctx6h, {
+        // MAI NAP GRAFIKON (Órás bontás a history-ból)
+        const ctxDay = document.getElementById('humidityChartDay').getContext('2d');
+        chartDayObj = new Chart(ctxDay, {
             type: 'bar',
-            data: { labels: [], datasets: [{ label: 'Pára %', data: [], backgroundColor: '#52d18c', borderRadius: 4 }] },
+            data: { labels: [], datasets: [{ label: 'Átlag Pára %', data: [], backgroundColor: 'rgba(82, 209, 140, 0.6)', borderRadius: 6 }] },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    y: { min: 0, max: 100, grid: { color: '#333' } },
+                    y: { min: 0, max: 100, grid: { color: '#2a2a2a' }, ticks: { color: '#666' } },
                     x: { grid: { display: false }, ticks: { color: '#666' } }
                 },
-                plugins: { legend: { display: false } }
+                plugins: { 
+                    legend: { display: false },
+                    annotation: idealRangeAnnotation
+                }
             }
         });
 
-        // ADATOK ÉLŐBEN
+        // ÉLŐ ADATOK
         db.ref('/').on('value', (s) => {
             const d = s.val(); if (!d) return;
             document.getElementById('current-hum').textContent = Math.round(d.paratartalom);
             document.getElementById('current-temp').textContent = d.homerseklet.toFixed(1);
         });
 
-        // HISTORY FRISSÍTÉS
-        db.ref('history').limitToLast(60).on('value', (s) => {
+        // HISTORY -> 1 ÓRÁS ÉS NAPI ÁTLAGOLÓ
+        db.ref('history').limitToLast(1000).on('value', (s) => {
             const data = s.val(); if (!data) return;
-            const h = []; const t = []; const l = [];
-            for (const id in data) {
-                const date = new Date(data[id].ts);
-                l.push(date.getHours() + ":" + date.getMinutes().toString().padStart(2, '0'));
-                h.push(data[id].h); t.push(data[id].t);
-            }
-            chart1hObj.data.labels = l;
-            chart1hObj.data.datasets[0].data = h;
-            chart1hObj.data.datasets[1].data = t;
-            chart1hObj.update('none'); // Frissítés animáció nélkül a folyamatosságért
-        });
+            
+            // 1. ELMÚLT 1 ÓRA (perces adatok)
+            const h1 = []; const t1 = []; const l1 = [];
+            const allEntries = Object.values(data);
+            const last60 = allEntries.slice(-60);
+            
+            last60.forEach(entry => {
+                const date = new Date(entry.ts);
+                l1.push(date.getHours() + ":" + date.getMinutes().toString().padStart(2, '0'));
+                h1.push(entry.h); t1.push(entry.t);
+            });
+            chart1hObj.data.labels = l1;
+            chart1hObj.data.datasets[0].data = h1;
+            chart1hObj.data.datasets[1].data = t1;
+            chart1hObj.update('none');
 
-        // NAPI (ÓRÁS) FRISSÍTÉS
-        db.ref('history_long').limitToLast(24).on('value', (s) => {
-            const data = s.val(); if (!data) return;
-            const v = []; const l = [];
-            for (const id in data) {
-                l.push(data[id].label || ""); v.push(data[id].avgH || 0);
-            }
-            chart6hObj.data.labels = l;
-            chart6hObj.data.datasets[0].data = v;
-            chart6hObj.update();
+            // 2. MAI NAP (Órás átlagok képzése a history-ból)
+            const hourlyData = {};
+            allEntries.forEach(entry => {
+                const date = new Date(entry.ts);
+                const hourKey = date.getHours() + ":00";
+                if (!hourlyData[hourKey]) hourlyData[hourKey] = { sum: 0, count: 0 };
+                hourlyData[hourKey].sum += entry.h;
+                hourlyData[hourKey].count++;
+            });
+
+            const lDay = []; const vDay = [];
+            Object.keys(hourlyData).forEach(hour => {
+                lDay.push(hour);
+                vDay.push(Math.round(hourlyData[hour].sum / hourlyData[hour].count));
+            });
+            chartDayObj.data.labels = lDay;
+            chartDayObj.data.datasets[0].data = vDay;
+            chartDayObj.update();
         });
 
         function openChart(evt, name) {
@@ -202,8 +249,6 @@
             document.getElementById(name).classList.add('active');
             evt.currentTarget.classList.add('active');
         }
-
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
     </script>
 </body>
 </html>
